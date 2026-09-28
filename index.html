@@ -139,8 +139,8 @@
             <span class="text-sm font-black text-amber-400" id="foodCalories">0 kcal</span>
           </div>
           <p class="text-[11px] text-slate-300 leading-relaxed" id="foodDetails">Detalle de ingredientes...</p>
-          <button onclick="switchTab('tab-add')" class="w-full mt-2 bg-sky-600 hover:bg-sky-500 text-white font-medium py-2 rounded-lg text-xs transition-colors">
-            Cargar en Registro Diario
+          <button onclick="addCurrentScannedFoodToRegister()" class="w-full mt-2 bg-sky-600 hover:bg-sky-500 text-white font-medium py-2 rounded-lg text-xs transition-colors flex items-center justify-center gap-1">
+            <span>➕ Sumar a Registro Diario</span>
           </button>
         </div>
       </div>
@@ -150,6 +150,21 @@
     <div id="tab-add" class="tab-content space-y-4">
       <div class="glass-panel p-5 rounded-2xl shadow-lg space-y-4">
         <h2 class="text-base font-bold text-white">Nuevo Registro Diario</h2>
+        
+        <!-- Selector de Comida Escaneada -->
+        <div class="p-3 bg-sky-950/30 border border-sky-500/20 rounded-xl space-y-2">
+          <label class="block text-xs font-semibold text-sky-300">🍽️ Comidas Escaneadas Disponibles</label>
+          <div class="flex gap-2">
+            <select id="scannedFoodSelect" class="w-full bg-slate-900 border border-white/10 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-sky-500">
+              <option value="">-- Selecciona una comida --</option>
+            </select>
+            <button type="button" onclick="addSelectedScannedFood()" class="bg-sky-600 hover:bg-sky-500 text-white px-3 py-2 rounded-lg text-xs font-semibold transition-colors shrink-0">
+              + Agregar
+            </button>
+          </div>
+          <p class="text-[10px] text-slate-400">Seleccionar una comida sumará automáticamente sus calorías al total del día.</p>
+        </div>
+
         <form id="trackerForm" class="space-y-4">
           <div>
             <label class="block text-xs text-slate-400 mb-1">Fecha</label>
@@ -171,9 +186,15 @@
               <input type="number" step="0.1" id="weightInput" placeholder="Ej: 69.0" class="w-full bg-slate-900/80 border border-white/10 rounded-xl p-3 text-sm text-slate-100 focus:outline-none focus:border-sky-500">
             </div>
             <div>
-              <label class="block text-xs text-slate-400 mb-1">Calorías Consumidas</label>
+              <label class="block text-xs text-slate-400 mb-1">Calorías Consumidas (total)</label>
               <input type="number" id="consumedKcalInput" placeholder="Ej: 450" class="w-full bg-slate-900/80 border border-white/10 rounded-xl p-3 text-sm text-slate-100 focus:outline-none focus:border-sky-500">
             </div>
+          </div>
+
+          <!-- Lista de comidas sumadas hoy -->
+          <div id="todayFoodsContainer" class="hidden space-y-1 bg-black/20 p-2.5 rounded-xl border border-white/5">
+            <span class="text-[11px] font-semibold text-slate-300 block mb-1">Comidas incluidas en este registro:</span>
+            <div id="todayFoodsList" class="space-y-1"></div>
           </div>
 
           <button type="submit" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-semibold p-3.5 rounded-xl text-sm transition-colors shadow-lg active:scale-95 duration-150">
@@ -249,7 +270,10 @@
 
   <script>
     let records = JSON.parse(localStorage.getItem('fitness_records')) || [];
+    let scannedFoods = JSON.parse(localStorage.getItem('scanned_foods')) || [];
     let apiKey = localStorage.getItem('gemini_api_key') || '';
+    let currentScannedResult = null;
+    let selectedFoodsForToday = [];
 
     if (apiKey) document.getElementById('apiKeyInput').value = apiKey;
     document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
@@ -312,7 +336,6 @@
       reader.readAsDataURL(file);
     }
 
-    // Lista de modelos de Gemini ordenados por prioridad/estabilidad
     const candidateModels = [
       'gemini-2.5-flash',
       'gemini-2.5-flash-lite',
@@ -330,7 +353,6 @@
         });
 
         if (response.status === 429 || response.status === 503) {
-          // Si el servidor o modelo está saturado o en Rate Limit, esperar 2s antes de reintentar
           if (attempt < maxRetries) {
             document.getElementById('aiStatusText').innerText = `⏳ Servidor ocupado. Reintentando (${attempt + 1}/${maxRetries})...`;
             await delay(2000 * (attempt + 1));
@@ -345,7 +367,7 @@
     }
 
     async function analyzeWithGeminiWithFallback(base64Data, mimeType) {
-      const prompt = `Analiza la imagen de esta comida/plato. Estimando las porciones visibles, calcula aproximadamente las calorías totales. Devuelve UNICAMENTE un objeto JSON estrictamente con este formato, sin bloques de código ni texto adicional: {"dishName": "Nombre breve del plato", "calories": 450, "details": "Breve desglose de ingredientes y porciones estimadas"}`;
+      const prompt = `Analiza la imagen de esta comida/plato. Estimando las porciones visibles, calcula aproximadamente las calorías totales. Devuelve UNICAMENTE un objeto JSON strictly con este formato, sin bloques de código ni texto adicional: {"dishName": "Nombre breve del plato", "calories": 450, "details": "Breve desglose de ingredientes y porciones estimadas"}`;
 
       const payload = {
         contents: [{
@@ -371,7 +393,7 @@
           if (data.error) {
             console.warn(`Error en modelo ${model}:`, data.error.message);
             lastError = data.error.message;
-            continue; // Probar siguiente modelo
+            continue;
           }
 
           if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
@@ -430,12 +452,93 @@
     }
 
     function showAiResult(result) {
+      currentScannedResult = {
+        id: Date.now(),
+        date: new Date().toISOString().split('T')[0],
+        name: result.dishName,
+        calories: result.calories,
+        details: result.details
+      };
+
+      // Guardar en la lista de comidas escaneadas
+      scannedFoods.unshift(currentScannedResult);
+      localStorage.setItem('scanned_foods', JSON.stringify(scannedFoods));
+      updateScannedFoodDropdown();
+
       document.getElementById('aiLoading').classList.add('hidden');
       document.getElementById('aiResult').classList.remove('hidden');
       document.getElementById('foodName').innerText = result.dishName;
       document.getElementById('foodCalories').innerText = `~${result.calories} kcal`;
       document.getElementById('foodDetails').innerText = result.details;
-      document.getElementById('consumedKcalInput').value = result.calories;
+    }
+
+    function addCurrentScannedFoodToRegister() {
+      if (!currentScannedResult) return;
+      addFoodToToday(currentScannedResult);
+      switchTab('tab-add');
+    }
+
+    function updateScannedFoodDropdown() {
+      const select = document.getElementById('scannedFoodSelect');
+      select.innerHTML = '<option value="">-- Selecciona una comida --</option>';
+
+      scannedFoods.forEach(food => {
+        const option = document.createElement('option');
+        option.value = food.id;
+        option.textContent = `${food.name} (~${food.calories} kcal) - ${food.date}`;
+        select.appendChild(option);
+      });
+    }
+
+    function addSelectedScannedFood() {
+      const select = document.getElementById('scannedFoodSelect');
+      const selectedId = select.value;
+      if (!selectedId) return;
+
+      const food = scannedFoods.find(f => f.id == selectedId);
+      if (food) {
+        addFoodToToday(food);
+        select.value = '';
+      }
+    }
+
+    function addFoodToToday(food) {
+      selectedFoodsForToday.push(food);
+      recalculateConsumedKcal();
+      renderTodayFoodsList();
+    }
+
+    function removeFoodFromToday(index) {
+      selectedFoodsForToday.splice(index, 1);
+      recalculateConsumedKcal();
+      renderTodayFoodsList();
+    }
+
+    function recalculateConsumedKcal() {
+      const sum = selectedFoodsForToday.reduce((acc, f) => acc + f.calories, 0);
+      document.getElementById('consumedKcalInput').value = sum > 0 ? sum : '';
+    }
+
+    function renderTodayFoodsList() {
+      const container = document.getElementById('todayFoodsContainer');
+      const list = document.getElementById('todayFoodsList');
+      list.innerHTML = '';
+
+      if (selectedFoodsForToday.length === 0) {
+        container.classList.add('hidden');
+        return;
+      }
+
+      container.classList.remove('hidden');
+      selectedFoodsForToday.forEach((f, idx) => {
+        const item = document.createElement('div');
+        item.className = 'flex justify-between items-center text-xs bg-slate-900/80 p-2 rounded-lg border border-white/5';
+        item.innerHTML = `
+          <span class="text-slate-200">${f.name} <b class="text-amber-400">(${f.calories} kcal)</b></span>
+          <button type="button" onclick="removeFoodFromToday(${idx})" class="text-rose-400 hover:text-rose-300 font-bold px-1.5">✕</button>
+        `;
+        list.appendChild(item);
+      });
     }
 
     // Gráfico Chart.js
@@ -477,7 +580,14 @@
       if (activity === 'bike') caloriesBurned = 550;
 
       const existingIdx = records.findIndex(r => r.date === date);
-      const newEntry = { date, activity, caloriesBurned, weight, consumedKcal };
+      const newEntry = { 
+        date, 
+        activity, 
+        caloriesBurned, 
+        weight, 
+        consumedKcal,
+        foods: [...selectedFoodsForToday]
+      };
 
       if (existingIdx >= 0) records[existingIdx] = newEntry;
       else records.push(newEntry);
@@ -485,9 +595,13 @@
       records.sort((a, b) => new Date(a.date) - new Date(b.date));
       localStorage.setItem('fitness_records', JSON.stringify(records));
 
-      updateUI();
+      // Limpiar formulario
+      selectedFoodsForToday = [];
+      renderTodayFoodsList();
       document.getElementById('weightInput').value = '';
       document.getElementById('consumedKcalInput').value = '';
+
+      updateUI();
       switchTab('tab-home');
     });
 
@@ -508,21 +622,29 @@
 
       [...records].reverse().forEach(r => {
         const item = document.createElement('div');
-        item.className = 'p-3 bg-slate-900/60 rounded-xl border border-white/5 flex justify-between items-center';
+        item.className = 'p-3 bg-slate-900/60 rounded-xl border border-white/5 space-y-1';
         
         let actText = 'Sin ej.';
         if (r.activity === 'routine') actText = 'Alfombra 🧘';
         if (r.activity === 'bike') actText = 'Bici 🚴';
 
+        let foodsListHtml = '';
+        if (r.foods && r.foods.length > 0) {
+          foodsListHtml = `<div class="text-[10px] text-slate-400 mt-1 border-t border-white/5 pt-1">🍲 ${r.foods.map(f => f.name).join(', ')}</div>`;
+        }
+
         item.innerHTML = `
-          <div>
-            <span class="font-semibold text-slate-200 block text-xs">${r.date}</span>
-            <span class="text-[10px] text-slate-400">${actText}</span>
+          <div class="flex justify-between items-center">
+            <div>
+              <span class="font-semibold text-slate-200 block text-xs">${r.date}</span>
+              <span class="text-[10px] text-slate-400">${actText}</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              ${r.consumedKcal ? `<span class="text-amber-400 font-medium text-xs">🍽️ ${r.consumedKcal} kcal</span>` : ''}
+              ${r.weight ? `<span class="text-sky-400 font-bold text-xs ml-1">${r.weight} kg</span>` : ''}
+            </div>
           </div>
-          <div class="flex items-center space-x-2">
-            ${r.consumedKcal ? `<span class="text-amber-400 font-medium text-xs">🍽️ ${r.consumedKcal} kcal</span>` : ''}
-            ${r.weight ? `<span class="text-sky-400 font-bold text-xs ml-1">${r.weight} kg</span>` : ''}
-          </div>
+          ${foodsListHtml}
         `;
         historyEl.appendChild(item);
       });
@@ -532,10 +654,15 @@
       if (confirm('¿Deseas borrar todo el historial?')) {
         localStorage.clear();
         records = [];
+        scannedFoods = [];
+        selectedFoodsForToday = [];
+        updateScannedFoodDropdown();
+        renderTodayFoodsList();
         updateUI();
       }
     }
 
+    updateScannedFoodDropdown();
     updateUI();
   </script>
 </body>
