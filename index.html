@@ -198,7 +198,7 @@
 
   </main>
 
-  <!-- BARRA DE NAVEGACIÓN FLOTANTE TIPO iOS (Pill shape) -->
+  <!-- BARRA DE NAVEGACIÓN FLOTANTE TIPO iOS -->
   <nav class="fixed bottom-5 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-30">
     <div class="glass-nav rounded-full px-4 py-2.5 shadow-2xl flex justify-around items-center">
       
@@ -311,7 +311,6 @@
       reader.onloadend = async () => {
         const base64Image = reader.result.split(',')[1];
         
-        // Detección si es clave de OpenRouter o Gemini
         if (apiKey.startsWith('sk-or-')) {
           await analyzeWithOpenRouter(base64Image, file.type);
         } else {
@@ -321,10 +320,11 @@
       reader.readAsDataURL(file);
     }
 
-    // Solución 1: Análisis con Gemini (modelos oficiales actualizados)
+    // Análisis con modelos Gemini vigentes indicados por la API
     async function analyzeWithGemini(base64Data, mimeType) {
-      const models = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'];
-      const prompt = `Analiza la imagen de esta comida/plato. Estimando las porciones visibles, calcula aproximadamente las calorías totales. Devuelve UNICAMENTE un objeto JSON estrictamente con este formato, sin bloques de código ni texto adicional: {"dishName": "Nombre breve del plato", "calories": 450, "details": "Breve desglose de ingredientes y porciones estimadas"}`;
+      // Modelos Gemini 3.x recomendados
+      const models = ['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.5-flash'];
+      const prompt = `Analiza la imagen de esta comida/plato. Estimando las porciones visibles, calcula aproximadamente las calorías totales. Devuelve UNICAMENTE un objeto JSON strictly con este formato, sin bloques de código ni texto adicional: {"dishName": "Nombre breve del plato", "calories": 450, "details": "Breve desglose de ingredientes y porciones estimadas"}`;
 
       const payload = {
         contents: [{
@@ -372,7 +372,7 @@
       alert('Error al analizar la imagen: ' + lastError);
     }
 
-    // Solución 2: Análisis con OpenRouter (como respaldo alternativo)
+    // Análisis alternativo con OpenRouter
     async function analyzeWithOpenRouter(base64Data, mimeType) {
       const prompt = `Analiza la imagen de esta comida/plato. Estimando las porciones visibles, calcula aproximadamente las calorías totales. Devuelve UNICAMENTE un objeto JSON estrictamente con este formato, sin bloques de código ni texto adicional: {"dishName": "Nombre breve del plato", "calories": 450, "details": "Breve desglose de ingredientes y porciones estimadas"}`;
 
