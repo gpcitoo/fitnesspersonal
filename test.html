@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Fitness Nocturno Pro</title>
+  <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIkZpdG5lc3MgTm9jdHVybm8gUHJvIiwKICAic2hvcnRfbmFtZSI6ICJGaXROb2NodXJubyIsCiAgInN0YXJ0X3VybCI6ICIuIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjMGIwZjE5IiwKICAidGhlbWVfY29sb3IiOiAiIzBiMGYxOSIKfQ==">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            ios: {
+              bg: '#0b0f19',
+              card: 'rgba(23, 31, 51, 0.75)',
+              border: 'rgba(255, 255, 255, 0.08)',
+              accent: '#38bdf8',
+              emerald: '#10b981',
+              amber: '#f59e0b',
+              rose: '#f43f5e'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #0b0f19;
+      color: #f3f4f6;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .glass-panel {
+      background: rgba(23, 31, 51, 0.75);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-nav {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .tab-content {
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Capas translúcidas y color ambiental para que el blur se perciba como vidrio. */
+    body {
+      background:
+        radial-gradient(ellipse at 8% 2%, rgba(14, 165, 233, .22), transparent 34rem),
+        radial-gradient(ellipse at 96% 28%, rgba(99, 102, 241, .19), transparent 32rem),
+        radial-gradient(ellipse at 48% 100%, rgba(16, 185, 129, .10), transparent 38rem),
+        #080d19;
+      background-attachment: fixed;
+    }
+    .glass-panel {
+      background: linear-gradient(145deg, rgba(35, 49, 76, .76), rgba(15, 25, 44, .68));
+      border-color: rgba(186, 230, 253, .15);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, .20), inset 0 1px 0 rgba(255, 255, 255, .07);
+      transition: background-color .3s ease, border-color .3s ease, box-shadow .35s ease, transform .35s cubic-bezier(.2,.8,.2,1);
+    }
+    .glass-panel:hover {
+      border-color: rgba(125, 211, 252, .25);
+      box-shadow: 0 16px 42px rgba(0, 0, 0, .27), inset 0 1px 0 rgba(255, 255, 255, .10);
+    }
+    .glass-nav {
+      background: rgba(15, 25, 46, .72);
+      border-color: rgba(186, 230, 253, .2);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, .38), inset 0 1px 0 rgba(255, 255, 255, .12);
+    }
+    .tab-content.active { animation: tab-arrive .42s cubic-bezier(.16,1,.3,1) both; }
+    @keyframes tab-arrive {
+      from { opacity: 0; transform: translateY(14px) scale(.99); filter: blur(5px); }
+      to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+    }
+    button, a, label[for], select, input, textarea {
+      transition: color .2s ease, background-color .25s ease, border-color .25s ease,
+        box-shadow .25s ease, transform .25s cubic-bezier(.2,.8,.2,1), filter .25s ease;
+    }
+    button { cursor: pointer; }
+    button:hover { filter: brightness(1.12); }
+    button:active { transform: scale(.96); filter: brightness(.95); }
+    button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible,
+    label[for]:focus-visible {
+      outline: 2px solid rgba(125, 211, 252, .9);
+      outline-offset: 3px;
+      box-shadow: 0 0 0 5px rgba(56, 189, 248, .13);
+    }
+    input:not([type="file"]), select, textarea {
+      background-color: rgba(5, 12, 25, .58);
+      border-color: rgba(148, 184, 220, .18);
+    }
+    input:not([type="file"]):hover, select:hover, textarea:hover {
+      border-color: rgba(125, 211, 252, .36);
+    }
+    input:not([type="file"]):focus, select:focus, textarea:focus {
+      border-color: rgba(56, 189, 248, .75);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, .12);
+    }
+    p, h1, h2, h3, span, label, b { transition: color .25s ease, text-shadow .25s ease; }
+    .nav-btn { transition: opacity .25s ease, color .25s ease, transform .25s ease; }
+    .nav-btn:not(.opacity-40) { color: #7dd3fc; transform: translateY(-2px); }
+    .nav-btn:hover { opacity: 1; }
+    #profileModal:not(.hidden), #quickFoodModal:not(.hidden) {
+      animation: modal-shade .22s ease both;
+    }
+    #profileModal:not(.hidden) > div, #quickFoodModal:not(.hidden) > div {
+      animation: modal-arrive .32s cubic-bezier(.16,1,.3,1) both;
+    }
+    @keyframes modal-shade { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes modal-arrive {
+      from { opacity: 0; transform: translateY(12px) scale(.97); filter: blur(6px); }
+      to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+    }
+    ::selection { background: rgba(56, 189, 248, .35); color: white; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body class="min-h-screen pb-28 select-none">
+
+  <!-- Header Premium -->
+  <header class="glass-panel sticky top-0 z-20 px-5 py-3.5 shadow-lg">
+    <div class="max-w-md mx-auto flex justify-between items-center">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 bg-gradient-to-tr from-sky-500 to-indigo-600 rounded-xl flex items-center justify-center text-lg shadow-md">
+          🌙
+        </div>
+        <div>
+          <h1 class="text-base font-bold tracking-tight text-white leading-none">Fitness Nocturno</h1>
+          <p class="text-[10px] text-slate-400 mt-0.5">Control de Dieta, Macros & Entreno</p>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="toggleModal('profileModal', true)" class="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors border border-white/10 text-xs flex items-center gap-1 text-slate-300">
+          ⚙️
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-md mx-auto p-4 relative z-0 space-y-4">
+
+    <!-- TAB 1: RESUMEN / DASHBOARD -->
+    <div id="tab-home" class="tab-content active space-y-4">
+      
+      <!-- Resumen Calórico Principal -->
+      <div class="glass-panel p-5 rounded-3xl shadow-xl space-y-4">
+        <div class="flex justify-between items-center">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Balance de Hoy</span>
+          <input type="date" id="dashDateSelect" onchange="changeDashDate(this.value)" class="bg-black/30 border border-white/10 text-[11px] text-sky-400 font-semibold rounded-lg px-2.5 py-1 focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-4 gap-2 text-center py-2">
+          <div>
+            <p id="dashTargetKcal" class="text-base font-bold text-slate-300">2000</p>
+            <p class="text-[9px] text-slate-500 uppercase font-medium">Meta</p>
+          </div>
+          <div class="text-slate-600 font-light">-</div>
+          <div>
+            <p id="dashConsumedKcal" class="text-base font-bold text-amber-400">0</p>
+            <p class="text-[9px] text-slate-500 uppercase font-medium">Comida</p>
+          </div>
+          <div>
+            <p id="dashBurnedKcal" class="text-base font-bold text-emerald-400">+0</p>
+            <p class="text-[9px] text-slate-500 uppercase font-medium">Ejercicio</p>
+          </div>
+        </div>
+
+        <!-- Anillo / Barra de Calórico Restante -->
+        <div class="bg-black/30 p-3.5 rounded-2xl border border-white/5 flex items-center justify-between">
+          <div>
+            <span class="text-[10px] text-slate-400 block font-medium">Calorías Restantes</span>
+            <span id="dashRemainingKcal" class="text-2xl font-black text-sky-400">2000 <span class="text-xs font-normal text-slate-400">kcal</span></span>
+          </div>
+          <div class="w-12 h-12 relative flex items-center justify-center">
+            <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+              <path class="text-slate-800" stroke-width="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              <path id="kcalProgressCircle" class="text-sky-400 transition-all duration-500" stroke-dasharray="0, 100" stroke-width="3.5" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- Barras de Macronutrientes -->
+        <div class="grid grid-cols-3 gap-2 pt-1">
+          <div class="space-y-1">
+            <div class="flex justify-between text-[10px]">
+              <span class="text-slate-400">Proteína</span>
+              <span id="pProtein" class="text-sky-400 font-semibold">0g</span>
+            </div>
+            <div class="w-full bg-black/40 h-1.5 rounded-full overflow-hidden">
+              <div id="barProtein" class="bg-sky-400 h-full w-0 transition-all duration-300"></div>
+            </div>
+          </div>
+          <div class="space-y-1">
+            <div class="flex justify-between text-[10px]">
+              <span class="text-slate-400">Carbos</span>
+              <span id="pCarbs" class="text-amber-400 font-semibold">0g</span>
+            </div>
+            <div class="w-full bg-black/40 h-1.5 rounded-full overflow-hidden">
+              <div id="barCarbs" class="bg-amber-400 h-full w-0 transition-all duration-300"></div>
+            </div>
+          </div>
+          <div class="space-y-1">
+            <div class="flex justify-between text-[10px]">
+              <span class="text-slate-400">Grasas</span>
+              <span id="pFat" class="text-rose-400 font-semibold">0g</span>
+            </div>
+            <div class="w-full bg-black/40 h-1.5 rounded-full overflow-hidden">
+              <div id="barFat" class="bg-rose-400 h-full w-0 transition-all duration-300"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráfico de Peso -->
+      <div class="glass-panel p-4 rounded-3xl shadow-lg space-y-2">
+        <div class="flex justify-between items-center px-1">
+          <h2 class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Evolución de Peso (kg)</h2>
+          <span id="dashGoalWeight" class="text-[10px] text-slate-400 bg-white/5 px-2 py-0.5 rounded-full border border-white/10">Meta: 62 kg</span>
+        </div>
+        <div class="h-44">
+          <canvas id="weightChart"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB 2: SCANNER IA DE PLATILLOS -->
+    <div id="tab-scan" class="tab-content space-y-4">
+      <div class="glass-panel p-5 rounded-3xl shadow-xl space-y-4">
+        <div class="text-center space-y-1">
+          <h2 class="text-base font-bold text-white">Escáner Nutricional IA</h2>
+          <p class="text-xs text-slate-400">Captura o sube una foto de tu plato para analizar calorías y macros.</p>
+        </div>
+
+        <div class="flex flex-col items-center justify-center border-2 border-dashed border-sky-500/30 rounded-2xl p-6 bg-black/20 text-center relative hover:bg-black/30 transition-colors">
+          <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden" onchange="processFoodImage(event)">
+          <label for="cameraInput" class="cursor-pointer flex flex-col items-center space-y-3">
+            <div class="w-14 h-14 bg-sky-500/10 text-sky-400 rounded-2xl flex items-center justify-center border border-sky-500/20 shadow-inner">
+              <svg class="w-7 h-7 stroke-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+              </svg>
+            </div>
+            <div>
+              <span class="text-xs font-semibold text-sky-400 block">Tomar Foto o Elegir Archivo</span>
+              <span class="text-[10px] text-slate-500 block mt-0.5">Visión por computadora Gemini AI</span>
+            </div>
+          </label>
+        </div>
+
+        <div id="aiLoading" class="hidden text-center py-3 text-xs text-amber-400 animate-pulse font-medium">
+          <span id="aiStatusText">⏳ Analizando plato y estimando ingredientes...</span>
+        </div>
+
+        <!-- Tarjeta de Resultado AI -->
+        <div id="aiResult" class="hidden glass-panel p-4 rounded-2xl border border-sky-500/30 space-y-3 bg-sky-950/20">
+          <div class="flex justify-between items-start border-b border-white/10 pb-2">
+            <div>
+              <h3 class="text-sm font-bold text-sky-300" id="foodName">Plato Detectado</h3>
+              <p class="text-[10px] text-slate-400" id="foodDetails">Detalles...</p>
+            </div>
+            <span class="text-base font-black text-amber-400" id="foodCalories">0 kcal</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 text-center text-xs bg-black/30 p-2 rounded-xl">
+            <div><span class="block text-[9px] text-slate-400">Proteína</span><b id="foodProtein" class="text-sky-400">0g</b></div>
+            <div><span class="block text-[9px] text-slate-400">Carbos</span><b id="foodCarbs" class="text-amber-400">0g</b></div>
+            <div><span class="block text-[9px] text-slate-400">Grasas</span><b id="foodFat" class="text-rose-400">0g</b></div>
+          </div>
+
+          <div class="space-y-2">
+            <label class="block text-[10px] text-slate-400 font-medium">Asignar a tiempo de comida:</label>
+            <select id="mealTypeScan" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none">
+              <option value="desayuno">☕ Desayuno</option>
+              <option value="almuerzo" selected>🍱 Almuerzo</option>
+              <option value="cena">🌙 Cena</option>
+              <option value="snack">🍏 Snack / Tentempié</option>
+            </select>
+            <button onclick="saveScanToToday()" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-semibold py-2.5 rounded-xl text-xs transition-colors shadow-lg">
+              ➕ Registrar en Diario
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB 3: REGISTRO DIARIO COMPLETO -->
+    <div id="tab-add" class="tab-content space-y-4">
+      
+      <!-- Selector de Fecha -->
+      <div class="glass-panel p-3 rounded-2xl flex justify-between items-center">
+        <span class="text-xs font-semibold text-slate-300">Fecha del Registro:</span>
+        <input type="date" id="recordDate" onchange="loadDateRecord(this.value)" class="bg-slate-900 border border-white/10 rounded-xl p-2 text-xs text-sky-400 font-bold focus:outline-none">
+      </div>
+
+      <!-- Sección Peso del Día -->
+      <div class="glass-panel p-4 rounded-2xl space-y-2">
+        <label class="block text-xs font-bold text-slate-300">⚖️ Registro de Peso Corporal</label>
+        <div class="flex gap-2">
+          <input type="number" step="0.1" id="inputWeight" placeholder="Ej: 69.5" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-sky-500">
+          <button onclick="saveWeightOnly()" class="bg-slate-800 hover:bg-slate-700 text-white px-4 rounded-xl text-xs font-semibold border border-white/10">Guardar</button>
+        </div>
+      </div>
+
+      <!-- Sección Registro de Comidas por Categoría -->
+      <div class="glass-panel p-4 rounded-2xl space-y-3">
+        <div class="flex justify-between items-center">
+          <h3 class="text-xs font-bold text-slate-300">🍲 Comidas del Día</h3>
+          <button onclick="toggleModal('quickFoodModal', true)" class="text-[11px] text-sky-400 hover:underline">+ Agregar Manual/Historial</button>
+        </div>
+
+        <div id="mealsListContainer" class="space-y-2">
+          <!-- Se llena dinámicamente con las comidas guardadas para esta fecha -->
+        </div>
+      </div>
+
+      <!-- Sección Registro de Ejercicio -->
+      <div class="glass-panel p-4 rounded-2xl space-y-3">
+        <h3 class="text-xs font-bold text-slate-300">🏃 Activity & Ejercicio</h3>
+        <div class="space-y-2">
+          <select id="exerciseSelect" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none">
+            <option value="routine_full">🧘 Rutina Nocturna Completa (~70 kcal)</option>
+            <option value="routine_half">🧘 Rutina Nocturna Parcial (~35 kcal)</option>
+            <option value="bike">🚴 Ciclismo Fin de Semana (~550 kcal)</option>
+            <option value="custom">⚡ Ejercicio Personalizado (especificar kcal)</option>
+          </select>
+          <div id="customKcalDiv" class="hidden">
+            <input type="number" id="customKcalInput" placeholder="Calorías quemadas" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2 text-xs text-slate-100">
+          </div>
+          <button onclick="saveExerciseForDate()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-xl text-xs transition-colors shadow-lg">
+            ✓ Guardar Ejercicio
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB 4: HISTORIAL Y METRICAS -->
+    <div id="tab-history" class="tab-content space-y-4">
+      <div class="glass-panel p-5 rounded-3xl shadow-lg space-y-3">
+        <div class="flex justify-between items-center">
+          <h2 class="text-base font-bold text-white">Historial de Registros</h2>
+          <div class="flex gap-2">
+            <button onclick="exportData()" class="text-[10px] bg-white/5 hover:bg-white/10 px-2.5 py-1 rounded-lg border border-white/10 text-slate-300">📥 Exportar</button>
+            <button onclick="clearData()" class="text-[10px] text-rose-400 hover:underline">Borrar</button>
+          </div>
+        </div>
+        <div id="historyList" class="space-y-2.5 max-h-[420px] overflow-y-auto text-xs pr-1"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- NAVEGACIÓN FLOTANTE TIPO IOS -->
+  <nav class="fixed bottom-5 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-30">
+    <div class="glass-nav rounded-full px-4 py-2.5 shadow-2xl flex justify-around items-center">
+      <button onclick="switchTab('tab-home')" id="nav-tab-home" class="nav-btn flex flex-col items-center gap-0.5 text-white transition-opacity opacity-100">
+        <svg class="w-5 h-5 stroke-[2]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+        <span class="text-[9px] font-medium">Inicio</span>
+      </button>
+
+      <button onclick="switchTab('tab-scan')" id="nav-tab-scan" class="nav-btn flex flex-col items-center gap-0.5 text-white transition-opacity opacity-40">
+        <svg class="w-5 h-5 stroke-[2]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+        <span class="text-[9px] font-medium">Escán IA</span>
+      </button>
+
+      <button onclick="switchTab('tab-add')" id="nav-tab-add" class="nav-btn flex flex-col items-center gap-0.5 text-white transition-opacity opacity-40">
+        <svg class="w-5 h-5 stroke-[2]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <span class="text-[9px] font-medium">Diario</span>
+      </button>
+
+      <button onclick="switchTab('tab-history')" id="nav-tab-history" class="nav-btn flex flex-col items-center gap-0.5 text-white transition-opacity opacity-40">
+        <svg class="w-5 h-5 stroke-[2]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01m-.01 4h.01"></path></svg>
+        <span class="text-[9px] font-medium">Historial</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- MODAL 1: PERFIL & OBJETIVOS METABÓLICOS -->
+  <div id="profileModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="glass-panel max-w-sm w-full p-5 rounded-3xl shadow-2xl space-y-4 border border-white/10 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-white/10 pb-2">
+        <h3 class="text-sm font-bold text-white">⚙️ Perfil & Objetivos</h3>
+        <button onclick="toggleModal('profileModal', false)" class="text-slate-400 text-base">✕</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1">Google AI Studio / OpenRouter Key</label>
+          <input type="password" id="apiKeyInput" placeholder="Pega tu API Key" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-slate-100">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-slate-400 mb-1">Estatura (cm)</label>
+            <input type="number" id="userHeight" value="158" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2 text-slate-100">
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Peso Meta (kg)</label>
+            <input type="number" id="userGoalWeight" value="62" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2 text-slate-100">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-400 mb-1">Meta Calórica Diaria (TDEE)</label>
+          <input type="number" id="userTargetKcal" value="1800" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-amber-400 font-bold">
+        </div>
+
+        <div class="grid grid-cols-3 gap-2">
+          <div>
+            <label class="block text-[10px] text-slate-400 mb-1">Proteína (g)</label>
+            <input type="number" id="userTargetP" value="120" class="w-full bg-slate-900 border border-white/10 rounded-xl p-1.5 text-sky-400 font-bold">
+          </div>
+          <div>
+            <label class="block text-[10px] text-slate-400 mb-1">Carbos (g)</label>
+            <input type="number" id="userTargetC" value="180" class="w-full bg-slate-900 border border-white/10 rounded-xl p-1.5 text-amber-400 font-bold">
+          </div>
+          <div>
+            <label class="block text-[10px] text-slate-400 mb-1">Grasas (g)</label>
+            <input type="number" id="userTargetF" value="50" class="w-full bg-slate-900 border border-white/10 rounded-xl p-1.5 text-rose-400 font-bold">
+          </div>
+        </div>
+      </div>
+
+      <button onclick="saveProfileSettings()" class="w-full bg-sky-600 hover:bg-sky-500 text-white py-3 rounded-xl font-semibold text-xs transition-colors">
+        Guardar Cambios
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL 2: AÑADIR COMIDA RÁPIDA / DESDE HISTORIAL -->
+  <div id="quickFoodModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="glass-panel max-w-sm w-full p-5 rounded-3xl shadow-2xl space-y-4 border border-white/10">
+      <div class="flex justify-between items-center border-b border-white/10 pb-2">
+        <h3 class="text-sm font-bold text-white">➕ Agregar Comida</h3>
+        <button onclick="toggleModal('quickFoodModal', false)" class="text-slate-400 text-base">✕</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1">Elegir de platos escaneados previos:</label>
+          <select id="quickHistorySelect" onchange="fillQuickFoodFromHistory(this.value)" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-slate-200">
+            <option value="">-- Seleccionar de biblioteca --</option>
+          </select>
+        </div>
+
+        <div class="border-t border-white/10 pt-2 space-y-2">
+          <input type="text" id="manualFoodName" placeholder="Nombre de la comida" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-slate-100">
+          <div class="grid grid-cols-2 gap-2">
+            <input type="number" id="manualFoodKcal" placeholder="Calorías (kcal)" class="bg-slate-900 border border-white/10 rounded-xl p-2.5 text-amber-400 font-bold">
+            <select id="manualMealType" class="bg-slate-900 border border-white/10 rounded-xl p-2.5 text-slate-200">
+              <option value="desayuno">Desayuno</option>
+              <option value="almuerzo" selected>Almuerzo</option>
+              <option value="cena">Cena</option>
+              <option value="snack">Snack</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-3 gap-1">
+            <input type="number" id="manualFoodP" placeholder="Prot (g)" class="bg-slate-900 border border-white/10 rounded-xl p-2 text-slate-100">
+            <input type="number" id="manualFoodC" placeholder="Carb (g)" class="bg-slate-900 border border-white/10 rounded-xl p-2 text-slate-100">
+            <input type="number" id="manualFoodF" placeholder="Grasa (g)" class="bg-slate-900 border border-white/10 rounded-xl p-2 text-slate-100">
+          </div>
+        </div>
+      </div>
+
+      <button onclick="addManualFoodToRecord()" class="w-full bg-sky-600 hover:bg-sky-500 text-white py-3 rounded-xl font-semibold text-xs transition-colors">
+        Agregar a Diario
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // ESTADO GENERAL DE LA APLICACIÓN
+    let profile = JSON.parse(localStorage.getItem('fn_profile')) || {
+      apiKey: localStorage.getItem('gemini_api_key') || '',
+      height: 158,
+      goalWeight: 62,
+      targetKcal: 1800,
+      targetP: 120,
+      targetC: 180,
+      targetF: 50
+    };
+
+    let records = JSON.parse(localStorage.getItem('fitness_records')) || [];
+    let scannedFoods = JSON.parse(localStorage.getItem('scanned_foods')) || [];
+    let activeScanResult = null;
+    let selectedDate = new Date().toISOString().split('T')[0];
+
+    // INICIALIZACIÓN
+    document.getElementById('dashDateSelect').value = selectedDate;
+    document.getElementById('recordDate').value = selectedDate;
+    loadProfileIntoInputs();
+
+    function loadProfileIntoInputs() {
+      document.getElementById('apiKeyInput').value = profile.apiKey || '';
+      document.getElementById('userHeight').value = profile.height;
+      document.getElementById('userGoalWeight').value = profile.goalWeight;
+      document.getElementById('userTargetKcal').value = profile.targetKcal;
+      document.getElementById('userTargetP').value = profile.targetP;
+      document.getElementById('userTargetC').value = profile.targetC;
+      document.getElementById('userTargetF').value = profile.targetF;
+      document.getElementById('dashGoalWeight').innerText = `Meta: ${profile.goalWeight} kg`;
+    }
+
+    function saveProfileSettings() {
+      profile.apiKey = document.getElementById('apiKeyInput').value.trim();
+      profile.height = parseFloat(document.getElementById('userHeight').value) || 158;
+      profile.goalWeight = parseFloat(document.getElementById('userGoalWeight').value) || 62;
+      profile.targetKcal = parseInt(document.getElementById('userTargetKcal').value) || 1800;
+      profile.targetP = parseInt(document.getElementById('userTargetP').value) || 120;
+      profile.targetC = parseInt(document.getElementById('userTargetC').value) || 180;
+      profile.targetF = parseInt(document.getElementById('userTargetF').value) || 50;
+
+      localStorage.setItem('fn_profile', JSON.stringify(profile));
+      localStorage.setItem('gemini_api_key', profile.apiKey);
+      toggleModal('profileModal', false);
+      updateUI();
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.add('opacity-40'));
+
+      const activeTab = document.getElementById(tabId);
+      if (activeTab) activeTab.classList.add('active');
+
+      const activeNav = document.getElementById(`nav-${tabId}`);
+      if (activeNav) activeNav.classList.remove('opacity-40');
+    }
+
+    function toggleModal(modalId, show) {
+      document.getElementById(modalId)?.classList.toggle('hidden', !show);
+    }
+
+    // PROCESAMIENTO DE IMÁGENES CON IA & FALLBACK
+    const candidateModels = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-1.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.8-flash'];
+    const delay = ms => new Promise(res => setTimeout(res, ms));
+
+    async function processFoodImage(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      if (!profile.apiKey) {
+        toggleModal('profileModal', true);
+        alert('Ingresa tu API Key para continuar.');
+        return;
+      }
+
+      document.getElementById('aiLoading').classList.remove('hidden');
+      document.getElementById('aiResult').classList.add('hidden');
+
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64Image = reader.result.split(',')[1];
+        if (profile.apiKey.startsWith('sk-or-')) {
+          await analyzeWithOpenRouter(base64Image, file.type);
+        } else {
+          await analyzeWithGeminiWithFallback(base64Image, file.type);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function analyzeWithGeminiWithFallback(base64Data, mimeType) {
+      const prompt = `Analiza la imagen de este plato de comida. Estima las porciones y calcula las calorías totales y sus macronutrientes aproximados. Devuelve ÚNICAMENTE un JSON con este formato exacto: {"dishName": "Nombre breve", "calories": 450, "protein": 30, "carbs": 40, "fat": 15, "details": "Breve descripción"}`;
+      const payload = { contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: mimeType, data: base64Data } }] }] };
+
+      for (const model of candidateModels) {
+        document.getElementById('aiStatusText').innerText = `⏳ Analizando con ${model}...`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${profile.apiKey}`;
+
+        try {
+          const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+          const data = await res.json();
+
+          if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+            const rawText = data.candidates[0].content.parts[0].text.trim();
+            const cleanJson = rawText.replace(/```json|```/g, '').trim();
+            showAiResult(JSON.parse(cleanJson));
+            return;
+          }
+        } catch (e) {
+          console.warn(`Error en ${model}:`, e);
+        }
+      }
+
+      document.getElementById('aiLoading').classList.add('hidden');
+      alert('Saturación temporal en API. Por favor reintenta en unos instantes.');
+    }
+
+    async function analyzeWithOpenRouter(base64Data, mimeType) {
+      const prompt = `Analiza la imagen de este plato de comida. Estima las porciones y calcula las calorías totales y sus macronutrientes aproximados. Devuelve ÚNICAMENTE un JSON con este formato exacto: {"dishName": "Nombre breve", "calories": 450, "protein": 30, "carbs": 40, "fat": 15, "details": "Breve descripción"}`;
+      try {
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${profile.apiKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [{ role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64Data}` } }] }]
+          })
+        });
+        const data = await response.json();
+        const rawText = data.choices[0].message.content.trim();
+        showAiResult(JSON.parse(rawText.replace(/```json|```/g, '').trim()));
+      } catch (err) {
+        document.getElementById('aiLoading').classList.add('hidden');
+        alert("Error OpenRouter: " + err.message);
+      }
+    }
+
+    function showAiResult(result) {
+      activeScanResult = {
+        id: Date.now(),
+        name: result.dishName,
+        calories: result.calories || 0,
+        protein: result.protein || 0,
+        carbs: result.carbs || 0,
+        fat: result.fat || 0,
+        details: result.details || ''
+      };
+
+      scannedFoods.unshift(activeScanResult);
+      localStorage.setItem('scanned_foods', JSON.stringify(scannedFoods));
+      updateQuickHistoryDropdown();
+
+      document.getElementById('aiLoading').classList.add('hidden');
+      document.getElementById('aiResult').classList.remove('hidden');
+      document.getElementById('foodName').innerText = result.dishName;
+      document.getElementById('foodCalories').innerText = `~${result.calories} kcal`;
+      document.getElementById('foodProtein').innerText = `${result.protein || 0}g`;
+      document.getElementById('foodCarbs').innerText = `${result.carbs || 0}g`;
+      document.getElementById('foodFat').innerText = `${result.fat || 0}g`;
+      document.getElementById('foodDetails').innerText = result.details;
+    }
+
+    function saveScanToToday() {
+      if (!activeScanResult) return;
+      const mealType = document.getElementById('mealTypeScan').value;
+      addFoodItemToRecord(selectedDate, { ...activeScanResult, mealType });
+      switchTab('tab-add');
+    }
+
+    // GESTIÓN DE REGISTROS POR FECHA
+    function getOrCreateRecord(dateStr) {
+      let rec = records.find(r => r.date === dateStr);
+      if (!rec) {
+        rec = { date: dateStr, weight: null, burnedKcal: 0, exerciseType: 'none', meals: [] };
+        records.push(rec);
+      }
+      return rec;
+    }
+
+    function addFoodItemToRecord(dateStr, foodItem) {
+      const rec = getOrCreateRecord(dateStr);
+      rec.meals.push(foodItem);
+      saveRecords();
+      updateUI();
+    }
+
+    function saveWeightOnly() {
+      const val = parseFloat(document.getElementById('inputWeight').value);
+      if (!val) return;
+      const rec = getOrCreateRecord(selectedDate);
+      rec.weight = val;
+      saveRecords();
+      updateUI();
+    }
+
+    function saveExerciseForDate() {
+      const type = document.getElementById('exerciseSelect').value;
+      const rec = getOrCreateRecord(selectedDate);
+
+      if (type === 'routine_full') rec.burnedKcal = 70;
+      else if (type === 'routine_half') rec.burnedKcal = 35;
+      else if (type === 'bike') rec.burnedKcal = 550;
+      else if (type === 'custom') rec.burnedKcal = parseInt(document.getElementById('customKcalInput').value) || 0;
+
+      rec.exerciseType = type;
+      saveRecords();
+      updateUI();
+    }
+
+    document.getElementById('exerciseSelect').addEventListener('change', (e) => {
+      document.getElementById('customKcalDiv').classList.toggle('hidden', e.target.value !== 'custom');
+    });
+
+    function saveRecords() {
+      records.sort((a, b) => new Date(a.date) - new Date(b.date));
+      localStorage.setItem('fitness_records', JSON.stringify(records));
+    }
+
+    function changeDashDate(val) {
+      selectedDate = val;
+      document.getElementById('recordDate').value = val;
+      updateUI();
+    }
+
+    function loadDateRecord(val) {
+      selectedDate = val;
+      document.getElementById('dashDateSelect').value = val;
+      updateUI();
+    }
+
+    // DASHBOARD Y NUTRANALYTICS EN TIEMPO REAL
+    function updateUI() {
+      const rec = getOrCreateRecord(selectedDate);
+
+      // Calcular Consumos
+      let consumedKcal = 0, pTotal = 0, cTotal = 0, fTotal = 0;
+      (rec.meals || []).forEach(m => {
+        consumedKcal += (m.calories || 0);
+        pTotal += (m.protein || 0);
+        cTotal += (m.carbs || 0);
+        fTotal += (m.fat || 0);
+      });
+
+      const burnedKcal = rec.burnedKcal || 0;
+      const remainingKcal = profile.targetKcal - consumedKcal + burnedKcal;
+
+      // Actualizar vista principal Dashboard
+      document.getElementById('dashTargetKcal').innerText = profile.targetKcal;
+      document.getElementById('dashConsumedKcal').innerText = consumedKcal;
+      document.getElementById('dashBurnedKcal').innerText = `+${burnedKcal}`;
+      document.getElementById('dashRemainingKcal').innerHTML = `${remainingKcal} <span class="text-xs font-normal text-slate-400">kcal</span>`;
+
+      // Barra / Anillo de Progresión
+      const pct = Math.min(Math.max((consumedKcal / profile.targetKcal) * 100, 0), 100);
+      document.getElementById('kcalProgressCircle').setAttribute('stroke-dasharray', `${pct}, 100`);
+
+      // Actualizar Macros
+      document.getElementById('pProtein').innerText = `${pTotal} / ${profile.targetP}g`;
+      document.getElementById('pCarbs').innerText = `${cTotal} / ${profile.targetC}g`;
+      document.getElementById('pFat').innerText = `${fTotal} / ${profile.targetF}g`;
+
+      document.getElementById('barProtein').style.width = `${Math.min((pTotal / profile.targetP) * 100, 100)}%`;
+      document.getElementById('barCarbs').style.width = `${Math.min((cTotal / profile.targetC) * 100, 100)}%`;
+      document.getElementById('barFat').style.width = `${Math.min((fTotal / profile.targetF) * 100, 100)}%`;
+
+      // Cargar lista de comidas en la pestaña Diario
+      renderDailyMeals(rec);
+
+      // Cargar Gráfico de Peso e Historial
+      updateChart();
+      renderHistory();
+    }
+
+    function renderDailyMeals(rec) {
+      const container = document.getElementById('mealsListContainer');
+      container.innerHTML = '';
+
+      if (!rec.meals || rec.meals.length === 0) {
+        container.innerHTML = '<p class="text-[11px] text-slate-500 text-center py-2">Sin comidas registradas hoy.</p>';
+        return;
+      }
+
+      rec.meals.forEach((m, idx) => {
+        const div = document.createElement('div');
+        div.className = 'p-2.5 bg-slate-900/80 rounded-xl border border-white/5 flex justify-between items-center text-xs';
+        div.innerHTML = `
+          <div>
+            <span class="font-bold text-slate-200 block">${m.name}</span>
+            <span class="text-[10px] text-slate-400 capitalize">${m.mealType || 'Comida'} • P: ${m.protein || 0}g C: ${m.carbs || 0}g G: ${m.fat || 0}g</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="font-black text-amber-400 text-xs">${m.calories} kcal</span>
+            <button onclick="removeMealFromRecord(${idx})" class="text-rose-400 hover:text-rose-300 font-bold">✕</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function removeMealFromRecord(index) {
+      const rec = getOrCreateRecord(selectedDate);
+      rec.meals.splice(index, 1);
+      saveRecords();
+      updateUI();
+    }
+
+    function updateQuickHistoryDropdown() {
+      const select = document.getElementById('quickHistorySelect');
+      select.innerHTML = '<option value="">-- Seleccionar de biblioteca --</option>';
+      scannedFoods.forEach(f => {
+        const option = document.createElement('option');
+        option.value = f.id;
+        option.textContent = `${f.name} (~${f.calories} kcal)`;
+        select.appendChild(option);
+      });
+    }
+
+    function fillQuickFoodFromHistory(id) {
+      const food = scannedFoods.find(f => f.id == id);
+      if (!food) return;
+      document.getElementById('manualFoodName').value = food.name;
+      document.getElementById('manualFoodKcal').value = food.calories;
+      document.getElementById('manualFoodP').value = food.protein || 0;
+      document.getElementById('manualFoodC').value = food.carbs || 0;
+      document.getElementById('manualFoodF').value = food.fat || 0;
+    }
+
+    function addManualFoodToRecord() {
+      const name = document.getElementById('manualFoodName').value.trim();
+      const calories = parseInt(document.getElementById('manualFoodKcal').value);
+      if (!name || !calories) return;
+
+      const mealType = document.getElementById('manualMealType').value;
+      const protein = parseInt(document.getElementById('manualFoodP').value) || 0;
+      const carbs = parseInt(document.getElementById('manualFoodC').value) || 0;
+      const fat = parseInt(document.getElementById('manualFoodF').value) || 0;
+
+      addFoodItemToRecord(selectedDate, { name, calories, protein, carbs, fat, mealType });
+
+      // Limpiar y cerrar modal
+      document.getElementById('manualFoodName').value = '';
+      document.getElementById('manualFoodKcal').value = '';
+      toggleModal('quickFoodModal', false);
+    }
+
+    // CHART.JS GRÁFICO DE PESO
+    const ctx = document.getElementById('weightChart').getContext('2d');
+    const weightChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Peso (kg)',
+          data: [],
+          borderColor: '#38bdf8',
+          backgroundColor: 'rgba(56, 189, 248, 0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+          y: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
+
+    function updateChart() {
+      const weightRecords = records.filter(r => r.weight !== null);
+      weightChart.data.labels = weightRecords.map(r => r.date.slice(5));
+      weightChart.data.datasets[0].data = weightRecords.map(r => r.weight);
+      weightChart.update();
+    }
+
+    function renderHistory() {
+      const container = document.getElementById('historyList');
+      container.innerHTML = '';
+
+      [...records].reverse().forEach(r => {
+        const totalKcal = (r.meals || []).reduce((acc, m) => acc + (m.calories || 0), 0);
+        const div = document.createElement('div');
+        div.className = 'p-3 bg-slate-900/60 rounded-xl border border-white/5 space-y-1';
+
+        let actText = 'Sin ejercicio';
+        if (r.burnedKcal > 0) actText = `Ejercicio: -${r.burnedKcal} kcal`;
+
+        div.innerHTML = `
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-slate-200 text-xs">${r.date}</span>
+            <div class="flex items-center gap-2">
+              <span class="text-amber-400 font-bold text-xs">🍽️ ${totalKcal} kcal</span>
+              ${r.weight ? `<span class="text-sky-400 font-bold text-xs">⚖️ ${r.weight} kg</span>` : ''}
+            </div>
+          </div>
+          <div class="text-[10px] text-slate-400 flex justify-between">
+            <span>${actText}</span>
+            <span>${r.meals ? r.meals.length : 0} platos registrados</span>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function exportData() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ profile, records, scannedFoods }));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `fitness_backup_${new Date().toISOString().split('T')[0]}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    function clearData() {
+      if (confirm('¿Deseas resetear todos los datos guardados localmente?')) {
+        localStorage.clear();
+        location.reload();
+      }
+    }
+
+    updateQuickHistoryDropdown();
+    updateUI();
+  </script>
+</body>
+</html>
