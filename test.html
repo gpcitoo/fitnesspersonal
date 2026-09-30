@@ -822,9 +822,17 @@
         modal.classList.remove('hidden');
         if (wasHidden) {
           const currentState = history.state && typeof history.state === 'object' ? history.state : {};
-          history.pushState({ ...currentState, __fitnessAppModal: modalId }, '', location.href);
+          try {
+            history.pushState({ ...currentState, __fitnessAppModal: modalId }, '', location.href);
+          } catch (error) {
+            console.warn('No se pudo guardar el estado de la ventana en el historial.', error);
+          }
         }
-        if (modalId === 'weightEvolutionModal') requestAnimationFrame(() => weightChart.resize());
+        if (modalId === 'weightEvolutionModal') {
+          requestAnimationFrame(() => {
+            try { window.weightChart?.resize(); } catch (error) { console.error('No se pudo redimensionar el gráfico.', error); }
+          });
+        }
         return;
       }
       if (modal.classList.contains('hidden') || modal.classList.contains('modal-closing')) return;
@@ -862,8 +870,15 @@
     }
 
     function openWeightEvolution() {
-      updateChart();
       toggleModal('weightEvolutionModal', true);
+      requestAnimationFrame(() => {
+        try {
+          updateChart();
+          window.weightChart?.resize();
+        } catch (error) {
+          console.error('No se pudo actualizar el gráfico de evolución.', error);
+        }
+      });
     }
 
     function openWeightRegistration() {
@@ -1545,6 +1560,7 @@
     applyThemeMode(profile.themeMode || 'dark');
 
     function updateChart() {
+      if (!window.weightChart) return;
       const weightRecords = records.filter(r => r.weight != null && Number.isFinite(Number(r.weight)));
       const firstWeight = [...weightRecords].sort((a, b) => a.date.localeCompare(b.date))[0];
       const chartRecords = records
@@ -1561,10 +1577,10 @@
         return null;
       });
 
-      weightChart.data.labels = labels;
-      weightChart.data.datasets[0].data = chartRecords.map(r => r.weight == null ? null : Number(r.weight));
-      weightChart.data.datasets[1].data = estimatedWeights;
-      weightChart.update();
+      window.weightChart.data.labels = labels;
+      window.weightChart.data.datasets[0].data = chartRecords.map(r => r.weight == null ? null : Number(r.weight));
+      window.weightChart.data.datasets[1].data = estimatedWeights;
+      window.weightChart.update();
     }
 
     function renderHistory() {
