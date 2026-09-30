@@ -115,16 +115,23 @@
     .nav-btn { transition: opacity .25s ease, color .25s ease, transform .25s ease; }
     .nav-btn:not(.opacity-40) { color: #7dd3fc; transform: translateY(-2px); }
     .nav-btn:hover { opacity: 1; }
-    #profileModal:not(.hidden), #quickFoodModal:not(.hidden) {
+    .modal-overlay:not(.hidden) {
       animation: modal-shade .22s ease both;
     }
-    #profileModal:not(.hidden) > div, #quickFoodModal:not(.hidden) > div {
+    .modal-overlay:not(.hidden) > .modal-card {
       animation: modal-arrive .32s cubic-bezier(.16,1,.3,1) both;
     }
+    .modal-overlay.modal-closing { animation: modal-shade-out .2s ease both; pointer-events: none; }
+    .modal-overlay.modal-closing > .modal-card { animation: modal-depart .2s cubic-bezier(.4,0,1,1) both; }
     @keyframes modal-shade { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes modal-shade-out { from { opacity: 1; } to { opacity: 0; } }
     @keyframes modal-arrive {
       from { opacity: 0; transform: translateY(12px) scale(.97); filter: blur(6px); }
       to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+    }
+    @keyframes modal-depart {
+      from { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+      to { opacity: 0; transform: translateY(8px) scale(.98); filter: blur(5px); }
     }
     ::selection { background: rgba(56, 189, 248, .35); color: white; }
     @media (prefers-reduced-motion: reduce) {
@@ -426,9 +433,13 @@
     </div>
   </nav>
 
+  <button onclick="showDailyAdvice()" aria-label="Ver consejos según mis resultados" class="fixed bottom-24 right-4 z-40 flex items-center gap-2 rounded-full border border-sky-200/25 bg-gradient-to-r from-sky-600 to-indigo-600 px-4 py-3 text-xs font-bold text-white shadow-xl shadow-sky-950/40 hover:shadow-sky-500/20">
+    <span aria-hidden="true">✨</span><span>Consejos</span>
+  </button>
+
   <!-- MODAL 1: PERFIL & OBJETIVOS METABÓLICOS -->
-  <div id="profileModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
-    <div class="glass-panel max-w-sm w-full p-5 rounded-3xl shadow-2xl space-y-4 border border-white/10 max-h-[90vh] overflow-y-auto">
+  <div id="profileModal" class="modal-overlay fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4" onclick="if (event.target === this) toggleModal('profileModal', false)">
+    <div class="modal-card glass-panel max-w-sm w-full p-5 rounded-3xl shadow-2xl space-y-4 border border-white/10 max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center border-b border-white/10 pb-2">
         <h3 class="text-sm font-bold text-white">⚙️ Perfil & Objetivos</h3>
         <button onclick="toggleModal('profileModal', false)" class="text-slate-400 text-base">✕</button>
@@ -452,9 +463,15 @@
         </div>
 
         <div>
-          <label class="block text-slate-400 mb-1">Meta Calórica Diaria (TDEE)</label>
+          <label class="block text-slate-400 mb-1">Meta de consumo diario (kcal)</label>
           <input type="number" id="userTargetKcal" value="1800" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-amber-400 font-bold">
+          <p class="text-[10px] text-slate-500 mt-1">Personaliza esta meta con un cuestionario según tu cuerpo, actividad y objetivo.</p>
         </div>
+
+        <button type="button" onclick="openCalorieWizard()" class="w-full rounded-xl border border-indigo-300/25 bg-indigo-500/15 px-3 py-3 text-left hover:bg-indigo-500/25">
+          <span class="block text-xs font-semibold text-indigo-100">🧮 Calcular mi meta personal</span>
+          <span class="block text-[10px] text-slate-400 mt-1">Responde unas preguntas para estimar tus calorías.</span>
+        </button>
 
         <div class="grid grid-cols-3 gap-2">
           <div>
@@ -479,8 +496,8 @@
   </div>
 
   <!-- MODAL 2: AÑADIR COMIDA RÁPIDA / DESDE HISTORIAL -->
-  <div id="quickFoodModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
-    <div class="glass-panel max-w-sm w-full p-5 rounded-3xl shadow-2xl space-y-4 border border-white/10">
+  <div id="quickFoodModal" class="modal-overlay fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4" onclick="if (event.target === this) toggleModal('quickFoodModal', false)">
+    <div class="modal-card glass-panel max-w-sm w-full p-5 rounded-3xl shadow-2xl space-y-4 border border-white/10">
       <div class="flex justify-between items-center border-b border-white/10 pb-2">
         <h3 class="text-sm font-bold text-white">➕ Agregar Comida</h3>
         <button onclick="toggleModal('quickFoodModal', false)" class="text-slate-400 text-base">✕</button>
@@ -519,6 +536,67 @@
     </div>
   </div>
 
+  <div id="adviceModal" class="modal-overlay fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4" onclick="if (event.target === this) toggleModal('adviceModal', false)">
+    <div class="modal-card glass-panel max-w-sm w-full p-5 rounded-3xl shadow-2xl space-y-4 border border-white/10 max-h-[85vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-white/10 pb-2">
+        <div>
+          <h3 class="text-sm font-bold text-white">✨ Consejos de tu día</h3>
+          <p id="adviceDate" class="text-[10px] text-slate-400 mt-1"></p>
+        </div>
+        <button onclick="toggleModal('adviceModal', false)" aria-label="Cerrar consejos" class="text-slate-400 text-base">✕</button>
+      </div>
+      <div class="rounded-2xl border border-sky-300/15 bg-sky-950/30 p-3 space-y-1">
+        <p id="adviceHeadline" class="text-sm font-bold text-sky-200"></p>
+        <p id="adviceSummary" class="text-[11px] leading-relaxed text-slate-300"></p>
+      </div>
+      <ul id="adviceList" class="space-y-2 text-xs leading-relaxed text-slate-300"></ul>
+      <p id="adviceDisclaimer" class="text-[9px] leading-relaxed text-slate-500"></p>
+    </div>
+  </div>
+
+  <div id="calorieWizardModal" class="modal-overlay fixed inset-0 z-[60] bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4" onclick="if (event.target === this) closeCalorieWizard()">
+    <div class="modal-card glass-panel max-w-sm w-full p-5 rounded-3xl shadow-2xl space-y-4 border border-white/10 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-white/10 pb-2">
+        <div>
+          <h3 class="text-sm font-bold text-white">🧮 Tu meta calórica</h3>
+          <p class="text-[10px] text-slate-400 mt-1">Estimación personal · se guarda en este dispositivo</p>
+        </div>
+        <button onclick="closeCalorieWizard()" aria-label="Cerrar cuestionario" class="text-slate-400 text-base">✕</button>
+      </div>
+      <div id="calorieWizardIntro" class="space-y-3">
+        <p class="text-xs leading-relaxed text-slate-300">Te preguntaremos edad, sexo usado por la fórmula, peso, estatura, actividad habitual y objetivo. La ecuación estima el gasto de mantenimiento y propone una meta de consumo.</p>
+        <p class="text-[10px] leading-relaxed text-slate-500">Es una referencia aproximada para adultos, no una indicación médica. No uses este cálculo si eres menor de 18 años, estás embarazada o en lactancia, o necesitas una pauta clínica; consulta a un profesional de salud.</p>
+        <button onclick="startCalorieWizard()" class="w-full rounded-xl bg-indigo-600 hover:bg-indigo-500 py-3 text-xs font-semibold text-white">Comenzar preguntas</button>
+      </div>
+      <div id="calorieWizardForm" class="hidden space-y-4">
+        <div>
+          <div class="flex justify-between text-[10px] text-slate-400 mb-1"><span id="wizardStepLabel"></span><span id="wizardStepCount"></span></div>
+          <div class="h-1.5 rounded-full bg-white/10 overflow-hidden"><div id="wizardProgress" class="h-full rounded-full bg-sky-400 transition-all"></div></div>
+        </div>
+        <div id="wizardQuestion" class="min-h-36 space-y-2"></div>
+        <p id="wizardError" class="hidden text-[10px] text-rose-300"></p>
+        <div class="flex gap-2">
+          <button id="wizardBackButton" onclick="previousCalorieWizardStep()" class="hidden flex-1 rounded-xl border border-white/10 bg-white/5 py-3 text-xs text-slate-200">Atrás</button>
+          <button id="wizardNextButton" onclick="nextCalorieWizardStep()" class="flex-1 rounded-xl bg-indigo-600 hover:bg-indigo-500 py-3 text-xs font-semibold text-white">Continuar</button>
+        </div>
+      </div>
+      <div id="calorieWizardResult" class="hidden space-y-4">
+        <div class="rounded-2xl border border-sky-300/20 bg-sky-950/30 p-4 space-y-2">
+          <p class="text-[10px] uppercase tracking-wider text-slate-400">Mantenimiento estimado</p>
+          <p class="text-xl font-black text-white"><span id="wizardMaintenanceResult"></span> kcal/día</p>
+          <div class="border-t border-white/10 pt-2">
+            <p class="text-[10px] uppercase tracking-wider text-slate-400">Meta de consumo sugerida</p>
+            <p class="text-2xl font-black text-sky-300"><span id="wizardTargetResult"></span> kcal/día</p>
+          </div>
+          <p id="wizardGoalDescription" class="text-[11px] leading-relaxed text-slate-300"></p>
+        </div>
+        <p class="text-[10px] leading-relaxed text-slate-500">La actividad habitual ya se incorpora al mantenimiento estimado. Registrar ejercicio no aumentará automáticamente tu límite de comida. Los resultados reales pueden variar; revisa la tendencia durante varias semanas.</p>
+        <button id="applyCalorieWizardButton" onclick="applyCalorieWizardResult()" class="w-full rounded-xl bg-sky-600 hover:bg-sky-500 py-3 text-xs font-semibold text-white">Usar esta meta</button>
+        <button onclick="editCalorieWizardAnswers()" class="w-full py-2 text-xs text-slate-400 hover:text-white">Cambiar respuestas</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // ESTADO GENERAL DE LA APLICACIÓN
     let profile = JSON.parse(localStorage.getItem('fn_profile')) || {
@@ -535,6 +613,9 @@
     let scannedFoods = JSON.parse(localStorage.getItem('scanned_foods')) || [];
     let activeScanResult = null;
     let selectedDate = new Date().toISOString().split('T')[0];
+    let calorieWizardStep = 0;
+    let calorieWizardAnswers = {};
+    let calorieWizardResult = null;
 
     // INICIALIZACIÓN
     document.getElementById('dashDateSelect').value = selectedDate;
@@ -579,7 +660,247 @@
     }
 
     function toggleModal(modalId, show) {
-      document.getElementById(modalId)?.classList.toggle('hidden', !show);
+      const modal = document.getElementById(modalId);
+      if (!modal) return;
+      if (modal._closeTimer) {
+        clearTimeout(modal._closeTimer);
+        modal._closeTimer = null;
+      }
+      if (show) {
+        modal.classList.remove('modal-closing');
+        modal.classList.remove('hidden');
+        return;
+      }
+      if (modal.classList.contains('hidden') || modal.classList.contains('modal-closing')) return;
+      modal.classList.add('modal-closing');
+      const closeDelay = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 20 : 200;
+      modal._closeTimer = setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('modal-closing');
+        modal._closeTimer = null;
+      }, closeDelay);
+    }
+
+    document.addEventListener('keydown', event => {
+      if (event.key !== 'Escape') return;
+      const openModals = [...document.querySelectorAll('.modal-overlay:not(.hidden)')];
+      const topModal = openModals[openModals.length - 1];
+      if (topModal) toggleModal(topModal.id, false);
+    });
+
+    const calorieWizardSteps = [
+      { key: 'age', title: '¿Qué edad tienes?', hint: 'La fórmula se utiliza aquí para adultos de 18 a 78 años.', type: 'number', min: 18, max: 78, unit: 'años', placeholder: 'Ej: 30' },
+      { key: 'sexConstant', title: '¿Qué constante usamos en la fórmula?', hint: 'Se usa únicamente para estimar el gasto en reposo. Si prefieres no elegir, puedes usar el promedio.', type: 'select', options: [['female', 'Femenina'], ['male', 'Masculina'], ['average', 'Promedio / prefiero no indicarlo']] },
+      { key: 'weight', title: '¿Cuál es tu peso actual?', hint: 'Ingresa el peso en kilogramos.', type: 'number', min: 35, max: 300, step: 0.1, unit: 'kg', placeholder: 'Ej: 70' },
+      { key: 'height', title: '¿Cuál es tu estatura?', hint: 'Ingresa la estatura en centímetros.', type: 'number', min: 130, max: 230, unit: 'cm', placeholder: 'Ej: 170' },
+      { key: 'activity', title: '¿Cómo describirías tu actividad habitual?', hint: 'Considera tanto tu movimiento diario como el ejercicio que sueles hacer.', type: 'select', options: [['1.2', 'Baja · mayormente sentado/a'], ['1.375', 'Ligera · algo de actividad 1–3 días/semana'], ['1.55', 'Moderada · actividad 3–5 días/semana'], ['1.725', 'Alta · actividad intensa 6–7 días/semana']] },
+      { key: 'goal', title: '¿Qué objetivo prefieres por ahora?', hint: 'Puedes cambiarlo más adelante desde Configuración.', type: 'select', options: [['lose_very_gentle', 'Reducir peso · muy gradual (5%)'], ['lose_gentle', 'Reducir peso · suave (10%)'], ['lose_moderate', 'Reducir peso · moderado (15%)'], ['lose_higher', 'Reducir peso · más marcado (20%)'], ['maintain', 'Mantener mi peso'], ['gain_gentle', 'Aumentar peso gradualmente (+5%)']] }
+    ];
+
+    function openCalorieWizard() {
+      calorieWizardStep = 0;
+      calorieWizardAnswers = {};
+      calorieWizardResult = null;
+      document.getElementById('calorieWizardIntro').classList.remove('hidden');
+      document.getElementById('calorieWizardForm').classList.add('hidden');
+      document.getElementById('calorieWizardResult').classList.add('hidden');
+      toggleModal('calorieWizardModal', true);
+    }
+
+    function closeCalorieWizard() {
+      toggleModal('calorieWizardModal', false);
+    }
+
+    function startCalorieWizard() {
+      document.getElementById('calorieWizardIntro').classList.add('hidden');
+      document.getElementById('calorieWizardForm').classList.remove('hidden');
+      renderCalorieWizardStep();
+    }
+
+    function renderCalorieWizardStep() {
+      const step = calorieWizardSteps[calorieWizardStep];
+      document.getElementById('wizardStepLabel').textContent = step.title;
+      document.getElementById('wizardStepCount').textContent = `${calorieWizardStep + 1} de ${calorieWizardSteps.length}`;
+      document.getElementById('wizardProgress').style.width = `${((calorieWizardStep + 1) / calorieWizardSteps.length) * 100}%`;
+      document.getElementById('wizardError').classList.add('hidden');
+      document.getElementById('wizardBackButton').classList.toggle('hidden', calorieWizardStep === 0);
+      document.getElementById('wizardNextButton').textContent = calorieWizardStep === calorieWizardSteps.length - 1 ? 'Ver estimación' : 'Continuar';
+
+      const savedValue = calorieWizardAnswers[step.key];
+      let control;
+      if (step.type === 'number') {
+        control = `<input id="wizardAnswer" type="number" min="${step.min}" max="${step.max}" ${step.step ? `step="${step.step}"` : 'step="1"'} value="${savedValue ?? ''}" placeholder="${step.placeholder}" class="w-full rounded-xl p-3 text-base text-white focus:outline-none">`;
+      } else {
+        const options = step.options.map(([value, label]) => `<option value="${value}" ${savedValue === value ? 'selected' : ''}>${label}</option>`).join('');
+        control = `<select id="wizardAnswer" class="w-full rounded-xl p-3 text-xs text-white focus:outline-none">${options}</select>`;
+      }
+      document.getElementById('wizardQuestion').innerHTML = `<p class="text-[11px] leading-relaxed text-slate-400">${step.hint}</p>${control}${step.unit ? `<span class="text-[10px] text-slate-500">Unidad: ${step.unit}</span>` : ''}`;
+      document.getElementById('wizardAnswer').focus();
+    }
+
+    function nextCalorieWizardStep() {
+      const step = calorieWizardSteps[calorieWizardStep];
+      const control = document.getElementById('wizardAnswer');
+      const rawValue = control.value;
+      let value = step.type === 'number' ? Number(rawValue) : rawValue;
+      const isValid = step.type === 'number'
+        ? rawValue !== '' && Number.isFinite(value) && value >= step.min && value <= step.max
+        : Boolean(value);
+      if (!isValid) {
+        const error = document.getElementById('wizardError');
+        error.textContent = step.type === 'number' ? `Ingresa un valor entre ${step.min} y ${step.max} ${step.unit}.` : 'Selecciona una opción para continuar.';
+        error.classList.remove('hidden');
+        return;
+      }
+      calorieWizardAnswers[step.key] = value;
+      if (calorieWizardStep < calorieWizardSteps.length - 1) {
+        calorieWizardStep++;
+        renderCalorieWizardStep();
+        return;
+      }
+      calculateCalorieWizardResult();
+    }
+
+    function previousCalorieWizardStep() {
+      if (calorieWizardStep === 0) return;
+      calorieWizardStep--;
+      renderCalorieWizardStep();
+    }
+
+    function calculateCalorieWizardResult() {
+      const a = calorieWizardAnswers;
+      const constant = a.sexConstant === 'male' ? 5 : a.sexConstant === 'female' ? -161 : -78;
+      const restingEnergy = (10 * a.weight) + (6.25 * a.height) - (5 * a.age) + constant;
+      const maintenanceKcal = Math.round(restingEnergy * Number(a.activity));
+      const goalSettings = {
+        lose_very_gentle: { adjustment: 0.05, description: 'Meta para un déficit muy gradual del 5% respecto al mantenimiento estimado.' },
+        lose_gentle: { adjustment: 0.10, description: 'Meta para un déficit suave del 10% respecto al mantenimiento estimado.' },
+        lose_moderate: { adjustment: 0.15, description: 'Meta para un déficit moderado del 15% respecto al mantenimiento estimado.' },
+        lose_higher: { adjustment: 0.20, description: 'Meta para un déficit más marcado del 20% respecto al mantenimiento estimado.' },
+        maintain: { adjustment: 0, description: 'Meta aproximada para mantener el peso según la actividad indicada.' },
+        gain_gentle: { adjustment: -0.05, description: 'Meta para un superávit pequeño del 5% respecto al mantenimiento estimado.' }
+      };
+      const goal = goalSettings[a.goal];
+      const targetKcal = Math.round((maintenanceKcal * (1 - goal.adjustment)) / 10) * 10;
+      calorieWizardResult = { maintenanceKcal, targetKcal, goalDescription: goal.description, activityFactor: Number(a.activity), weight: a.weight, height: a.height, goal: a.goal, sexConstant: a.sexConstant };
+
+      document.getElementById('calorieWizardForm').classList.add('hidden');
+      document.getElementById('calorieWizardResult').classList.remove('hidden');
+      document.getElementById('wizardMaintenanceResult').textContent = maintenanceKcal.toLocaleString('es-CL');
+      document.getElementById('wizardTargetResult').textContent = targetKcal.toLocaleString('es-CL');
+      document.getElementById('wizardGoalDescription').textContent = goal.description;
+
+      const applyButton = document.getElementById('applyCalorieWizardButton');
+      const isUnderMinimum = targetKcal < 1000;
+      applyButton.disabled = isUnderMinimum;
+      applyButton.classList.toggle('opacity-40', isUnderMinimum);
+      applyButton.classList.toggle('cursor-not-allowed', isUnderMinimum);
+      applyButton.textContent = isUnderMinimum ? 'Meta demasiado baja para aplicar' : 'Usar esta meta';
+      document.getElementById('wizardGoalDescription').textContent = isUnderMinimum
+        ? `${goal.description} Esta estimación queda por debajo de 1.000 kcal/día; no la apliques automáticamente y consulta a un profesional de salud.`
+        : goal.description;
+    }
+
+    function editCalorieWizardAnswers() {
+      document.getElementById('calorieWizardResult').classList.add('hidden');
+      document.getElementById('calorieWizardForm').classList.remove('hidden');
+      calorieWizardStep = calorieWizardSteps.length - 1;
+      renderCalorieWizardStep();
+    }
+
+    function applyCalorieWizardResult() {
+      if (!calorieWizardResult || calorieWizardResult.targetKcal < 1000) return;
+      profile.height = calorieWizardResult.height;
+      profile.currentWeight = calorieWizardResult.weight;
+      profile.maintenanceKcal = calorieWizardResult.maintenanceKcal;
+      profile.targetKcal = calorieWizardResult.targetKcal;
+      profile.activityFactor = calorieWizardResult.activityFactor;
+      profile.calorieGoal = calorieWizardResult.goal;
+      profile.caloriePlanVersion = 1;
+      localStorage.setItem('fn_profile', JSON.stringify(profile));
+
+      if (!records.some(day => day.weight != null)) {
+        const rec = getOrCreateRecord(selectedDate);
+        rec.weight = calorieWizardResult.weight;
+        saveRecords();
+      }
+      loadProfileIntoInputs();
+      closeCalorieWizard();
+      toggleModal('profileModal', false);
+      updateUI();
+    }
+
+    function showDailyAdvice() {
+      const rec = records.find(day => day.date === selectedDate) || { meals: [], burnedKcal: 0, dayClosed: false };
+      const meals = rec.meals || [];
+      const totals = meals.reduce((sum, meal) => ({
+        calories: sum.calories + (Number(meal.calories) || 0),
+        protein: sum.protein + (Number(meal.protein) || 0),
+        carbs: sum.carbs + (Number(meal.carbs) || 0),
+        fat: sum.fat + (Number(meal.fat) || 0)
+      }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+      const burned = Number(rec.burnedKcal) || 0;
+      const balance = calculateDayBalance({ ...rec, meals });
+      const dayLabel = rec.dayClosed ? 'Día cerrado' : 'Resumen provisional';
+      const advice = [];
+      let headline;
+      let summary;
+
+      if (!meals.length) {
+        headline = 'Empecemos por registrar';
+        summary = 'Todavía no hay comidas para evaluar este día. Agrega lo que comiste para recibir consejos más ajustados a tus resultados.';
+        advice.push('Puedes registrar comidas desde Diario o describirlas en el Escáner IA.');
+        if (burned > 0) advice.push(`Ya registraste ${burned} kcal de ejercicio; recuerda que descansar también forma parte de una rutina equilibrada.`);
+      } else {
+        const balanceLabel = balance > 0 ? `déficit estimado de ${Math.round(balance)} kcal` : balance < 0 ? `superávit estimado de ${Math.round(Math.abs(balance))} kcal` : 'balance cercano a tu meta';
+        summary = profile.maintenanceKcal
+          ? `${totals.calories} kcal registradas frente a una meta de consumo de ${profile.targetKcal} kcal; mantenimiento estimado: ${profile.maintenanceKcal} kcal. Ejercicio registrado: ${burned} kcal. Resultado: ${balanceLabel}.`
+          : `${totals.calories} kcal registradas frente a una meta de ${profile.targetKcal} kcal, más ${burned} kcal de ejercicio. Resultado: ${balanceLabel}.`;
+
+        if (balance > 0 && balance <= 600) {
+          headline = '¡Buen trabajo con tu constancia!';
+          advice.push('El balance registrado está cerca de tu objetivo. Mantener hábitos sostenibles suele ser más útil que intentar apurar el resultado de un solo día.');
+        } else if (balance > 600) {
+          headline = 'Prioriza un ritmo sostenible';
+          advice.push('El déficit estimado es alto para este día. Revisa que hayas registrado todas tus comidas y evita intentar aumentarlo más; un día aislado no define tu progreso.');
+        } else if (balance < 0) {
+          headline = 'Un día no define tu progreso';
+          advice.push('El registro quedó por encima de la meta estimada. No hace falta compensarlo con restricciones; retoma tu rutina habitual en la siguiente comida o mañana.');
+        } else {
+          headline = 'Día alineado con tu objetivo';
+          advice.push('Tu consumo quedó cerca de la meta estimada. La regularidad a lo largo del tiempo importa más que perseguir un número perfecto cada día.');
+        }
+
+        if (profile.targetP > 0 && totals.protein < profile.targetP) {
+          advice.push(`Proteína registrada: ${Math.round(totals.protein)} de ${profile.targetP} g. Si aún comerás, puedes incluir una fuente que te guste, como legumbres, huevos, yogur o pescado.`);
+        } else if (profile.targetP > 0) {
+          advice.push(`Alcanzaste tu referencia de proteína (${Math.round(totals.protein)} de ${profile.targetP} g): ¡bien registrado!`);
+        }
+
+        if (burned > 0) advice.push(`Sumaste ${burned} kcal de ejercicio. Considera hidratarte y dejar espacio para la recuperación.`);
+        else advice.push('No quedó ejercicio registrado hoy. Si te apetece y te sienta bien, un paseo suave es suficiente; también puedes priorizar el descanso.');
+      }
+
+      document.getElementById('adviceDate').textContent = `${selectedDate} · ${dayLabel}`;
+      document.getElementById('adviceHeadline').textContent = headline;
+      document.getElementById('adviceSummary').textContent = summary;
+      const list = document.getElementById('adviceList');
+      list.replaceChildren();
+      advice.forEach(message => {
+        const item = document.createElement('li');
+        item.className = 'flex gap-2';
+        const marker = document.createElement('span');
+        marker.className = 'text-sky-400';
+        marker.textContent = '•';
+        const text = document.createElement('span');
+        text.textContent = message;
+        item.append(marker, text);
+        list.appendChild(item);
+      });
+      document.getElementById('adviceDisclaimer').textContent = rec.dayClosed
+        ? 'Consejos automáticos basados únicamente en los datos que registraste; las calorías son estimaciones.'
+        : 'Cierra el día para que el balance sea más completo. Estos consejos son provisionales y usan únicamente lo registrado hasta ahora.';
+      toggleModal('adviceModal', true);
     }
 
     // PROCESAMIENTO DE IMÁGENES CON IA & FALLBACK
@@ -781,6 +1102,7 @@
     function calculateDayBalance(rec) {
       const consumed = (rec.meals || []).reduce((sum, meal) => sum + (Number(meal.calories) || 0), 0);
       const burned = Number(rec.burnedKcal) || 0;
+      if (profile.maintenanceKcal) return Number(profile.maintenanceKcal) - consumed;
       return profile.targetKcal + burned - consumed;
     }
 
@@ -858,7 +1180,7 @@
       });
 
       const burnedKcal = rec.burnedKcal || 0;
-      const remainingKcal = profile.targetKcal - consumedKcal + burnedKcal;
+      const remainingKcal = profile.targetKcal - consumedKcal + (profile.maintenanceKcal ? 0 : burnedKcal);
 
       // Actualizar vista principal Dashboard
       document.getElementById('dashTargetKcal').innerText = profile.targetKcal;
