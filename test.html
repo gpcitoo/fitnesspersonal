@@ -234,35 +234,14 @@
           </div>
         </div>
 
-        <div class="border-t border-white/10 pt-3 space-y-3">
-          <button id="closeDayButton" onclick="closeSelectedDay()" class="w-full bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-300/20 text-indigo-100 font-semibold py-2.5 rounded-xl text-xs">
-            🌙 Cerrar día y ver progreso
+        <div class="grid grid-cols-2 gap-2 border-t border-white/10 pt-3">
+          <button id="openDaySummaryButton" onclick="openDaySummary()" class="rounded-xl border border-indigo-300/20 bg-indigo-500/15 px-3 py-3 text-xs font-semibold text-indigo-100 hover:bg-indigo-500/25">
+            🌙 Cerrar día
           </button>
-          <div id="daySummaryPanel" class="hidden rounded-2xl border border-indigo-300/15 bg-indigo-950/30 p-3 space-y-3" aria-live="polite">
-            <div>
-              <p id="daySummaryTitle" class="text-[10px] text-slate-400">Balance estimado del día</p>
-              <p id="daySummaryBalance" class="text-sm font-bold text-white"></p>
-              <p id="daySummaryEquivalent" class="mt-1 text-[10px] text-indigo-200"></p>
-            </div>
-            <div class="border-t border-white/10 pt-2">
-              <p class="text-[10px] text-slate-400">Progreso acumulado en los últimos 7 días cerrados</p>
-              <p id="weekSummaryEquivalent" class="text-sm font-bold text-sky-200"></p>
-            </div>
-            <p class="text-[9px] leading-relaxed text-slate-500">Es una equivalencia energética orientativa (aprox. 7.700 kcal por kg), no un cambio de peso medido. El peso real fluctúa y solo se refleja al registrarlo.</p>
-          </div>
+          <button onclick="openWeightEvolution()" class="rounded-xl border border-sky-300/20 bg-sky-500/15 px-3 py-3 text-xs font-semibold text-sky-100 hover:bg-sky-500/25">
+            📈 Ver evolución
+          </button>
         </div>
-      </div>
-
-      <!-- Gráfico de Peso -->
-      <div class="glass-panel p-4 rounded-3xl shadow-lg space-y-2">
-        <div class="flex justify-between items-center px-1">
-          <h2 class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Evolución de Peso (kg)</h2>
-          <span id="dashGoalWeight" class="text-[10px] text-slate-400 bg-white/5 px-2 py-0.5 rounded-full border border-white/10">Meta: 62 kg</span>
-        </div>
-        <div class="h-44">
-          <canvas id="weightChart"></canvas>
-        </div>
-        <p class="text-[9px] leading-relaxed text-slate-500">Línea azul: peso que registraste. Línea ámbar: tendencia estimada desde tu primer peso y los días cerrados. Toca un punto para ver el resumen; la estimación no es una medición real.</p>
       </div>
 
     </div>
@@ -536,6 +515,49 @@
     </div>
   </div>
 
+  <div id="closeDayModal" class="modal-overlay fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4" onclick="if (event.target === this) toggleModal('closeDayModal', false)">
+    <div class="modal-card glass-panel max-w-sm w-full p-5 rounded-3xl shadow-2xl space-y-4 border border-white/10 max-h-[88vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-white/10 pb-2">
+        <div>
+          <h3 class="text-sm font-bold text-white">🌙 Cierre del día</h3>
+          <p id="daySummaryTitle" class="text-[10px] text-slate-400 mt-1"></p>
+        </div>
+      </div>
+      <div id="daySummaryPanel" class="rounded-2xl border border-indigo-300/15 bg-indigo-950/30 p-4 space-y-3" aria-live="polite">
+        <p id="daySummaryStatus" class="text-[10px] font-semibold uppercase tracking-wider text-indigo-200"></p>
+        <div>
+          <p id="daySummaryBalance" class="text-sm font-bold text-white"></p>
+          <p id="daySummaryEquivalent" class="mt-1 text-[10px] text-indigo-200"></p>
+          <p id="daySummaryKcalDetails" class="mt-2 text-[10px] leading-relaxed text-slate-400"></p>
+        </div>
+        <div class="border-t border-white/10 pt-2">
+          <p class="text-[10px] text-slate-400">Progreso acumulado en los últimos 7 días cerrados</p>
+          <p id="weekSummaryEquivalent" class="text-sm font-bold text-sky-200 mt-1"></p>
+        </div>
+        <p class="text-[9px] leading-relaxed text-slate-500">La equivalencia energética (aprox. 7.700 kcal por kg) es orientativa, no un cambio de peso medido.</p>
+      </div>
+      <button id="closeDayButton" onclick="closeSelectedDay()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-xl text-xs">Confirmar y cerrar día</button>
+    </div>
+  </div>
+
+  <div id="weightEvolutionModal" class="modal-overlay fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4" onclick="if (event.target === this) toggleModal('weightEvolutionModal', false)">
+    <div class="modal-card glass-panel max-w-md w-full p-5 rounded-3xl shadow-2xl space-y-4 border border-white/10 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-white/10 pb-2">
+        <div>
+          <h3 class="text-sm font-bold text-white">📈 Evolución de peso</h3>
+          <span id="dashGoalWeight" class="text-[10px] text-slate-400">Meta: 62 kg</span>
+        </div>
+        <button onclick="toggleModal('weightEvolutionModal', false)" aria-label="Cerrar evolución" class="text-slate-400 text-base">✕</button>
+      </div>
+      <div class="h-64">
+        <canvas id="weightChart"></canvas>
+      </div>
+      <p class="text-[10px] leading-relaxed text-slate-400">Línea azul: peso que registraste. Línea ámbar: tendencia estimada desde tu primer peso y los días cerrados. Toca un punto para ver el resumen; la estimación no es una medición real.</p>
+      <button onclick="openWeightRegistration()" class="w-full rounded-xl border border-sky-300/20 bg-sky-500/15 py-3 text-xs font-semibold text-sky-100 hover:bg-sky-500/25">⚖️ Registrar peso</button>
+      <button onclick="toggleModal('weightEvolutionModal', false)" class="w-full py-2 text-xs text-slate-400 hover:text-white">Cerrar ventana</button>
+    </div>
+  </div>
+
   <div id="adviceModal" class="modal-overlay fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4" onclick="if (event.target === this) toggleModal('adviceModal', false)">
     <div class="modal-card glass-panel max-w-sm w-full p-5 rounded-3xl shadow-2xl space-y-4 border border-white/10 max-h-[85vh] overflow-y-auto">
       <div class="flex justify-between items-center border-b border-white/10 pb-2">
@@ -669,6 +691,7 @@
       if (show) {
         modal.classList.remove('modal-closing');
         modal.classList.remove('hidden');
+        if (modalId === 'weightEvolutionModal') requestAnimationFrame(() => weightChart.resize());
         return;
       }
       if (modal.classList.contains('hidden') || modal.classList.contains('modal-closing')) return;
@@ -679,6 +702,23 @@
         modal.classList.remove('modal-closing');
         modal._closeTimer = null;
       }, closeDelay);
+    }
+
+    function openDaySummary() {
+      const rec = getOrCreateRecord(selectedDate);
+      updateDaySummary(rec);
+      toggleModal('closeDayModal', true);
+    }
+
+    function openWeightEvolution() {
+      updateChart();
+      toggleModal('weightEvolutionModal', true);
+    }
+
+    function openWeightRegistration() {
+      toggleModal('weightEvolutionModal', false);
+      switchTab('tab-add');
+      setTimeout(() => document.getElementById('inputWeight').scrollIntoView({ behavior: 'smooth', block: 'center' }), 250);
     }
 
     document.addEventListener('keydown', event => {
@@ -1123,23 +1163,24 @@
     }
 
     function updateDaySummary(rec) {
-      const panel = document.getElementById('daySummaryPanel');
       const button = document.getElementById('closeDayButton');
-      if (!rec.dayClosed) {
-        panel.classList.add('hidden');
-        button.textContent = '🌙 Cerrar día y ver progreso';
-        return;
-      }
-
-      panel.classList.remove('hidden');
-      button.textContent = '✓ Día cerrado · Actualizar resumen';
-      document.getElementById('daySummaryTitle').textContent = `Balance estimado · ${selectedDate}`;
+      const homeButton = document.getElementById('openDaySummaryButton');
+      button.textContent = rec.dayClosed ? 'Actualizar resumen del día' : 'Confirmar y cerrar día';
+      homeButton.textContent = rec.dayClosed ? '✓ Ver resumen' : '🌙 Cerrar día';
+      document.getElementById('daySummaryTitle').textContent = `Balance · ${selectedDate}`;
+      document.getElementById('daySummaryStatus').textContent = rec.dayClosed ? '✓ Día cerrado · puedes actualizarlo' : 'Revisa los datos antes de cerrar';
 
       const dailyBalance = calculateDayBalance(rec);
       const dailyResult = formatEnergyEquivalent(dailyBalance);
       const dailyType = dailyBalance > 0 ? 'Déficit' : dailyBalance < 0 ? 'Superávit' : 'Balance neutro';
       document.getElementById('daySummaryBalance').textContent = `${dailyType}: ${Math.abs(dailyBalance)} kcal`;
       document.getElementById('daySummaryEquivalent').textContent = `Equivalencia energética: ${dailyResult.equivalent}`;
+      const consumed = (rec.meals || []).reduce((sum, meal) => sum + (Number(meal.calories) || 0), 0);
+      const exercise = Number(rec.burnedKcal) || 0;
+      const kcalDetail = profile.maintenanceKcal
+        ? `Comida: ${consumed} / ${profile.targetKcal} kcal de meta · Mantenimiento estimado: ${profile.maintenanceKcal} kcal · Ejercicio registrado: ${exercise} kcal.`
+        : `Comida: ${consumed} / ${profile.targetKcal} kcal de meta · Ejercicio registrado: ${exercise} kcal.`;
+      document.getElementById('daySummaryKcalDetails').textContent = kcalDetail;
 
       const selectedTime = new Date(`${selectedDate}T00:00:00`);
       const recentClosedRecords = records.filter(day => {
